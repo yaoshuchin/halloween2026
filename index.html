@@ -1,0 +1,1861 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>奇幻怪獸拼貼樂園 - 創意手作與著色</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Fabric.js CDN for robust touch canvas manipulation and freehand drawing -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js"></script>
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Google Fonts for playful craft aesthetic -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Mochiy+Pop+One&family=Zen+Maru+Gothic:wght@500;700;900&display=swap" rel="stylesheet">
+
+  <style>
+    body {
+      font-family: 'Zen Maru Gothic', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      touch-action: manipulation;
+      user-select: none;
+      -webkit-user-select: none;
+      background: radial-gradient(circle at 10% 20%, #fff9e6 0%, #ffeecf 100%);
+    }
+
+    .brand-font {
+      font-family: 'Mochiy Pop One', 'Fredoka One', cursive;
+    }
+
+    /* Paper cut craft shadow effect */
+    .paper-shadow {
+      box-shadow: 0 8px 24px -4px rgba(90, 60, 20, 0.15), 0 3px 6px -2px rgba(90, 60, 20, 0.1);
+    }
+    
+    .craft-card {
+      background: #ffffff;
+      border: 3px solid #f0e6d6;
+      border-radius: 1.25rem;
+      transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .craft-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 20px -3px rgba(180, 100, 30, 0.15);
+      border-color: #ffd166;
+    }
+
+    .craft-card:active {
+      transform: scale(0.96);
+    }
+
+    /* Custom scrollbar for touch device and horizontal scroll trays */
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+
+    /* Canvas desk frame texture */
+    .desk-board {
+      background-color: #ffffff;
+      background-image: 
+        radial-gradient(#e7ded0 1.2px, transparent 1.2px),
+        radial-gradient(#e7ded0 1.2px, #faf7f2 1.2px);
+      background-size: 24px 24px;
+      background-position: 0 0, 12px 12px;
+    }
+
+    /* Smooth animated pulse for active tool */
+    .tool-active {
+      border-color: #f97316 !important;
+      background-color: #ffedd5 !important;
+      color: #ea580c !important;
+      transform: translateY(-1px);
+    }
+
+    /* Custom modal styling */
+    .toast-animate {
+      animation: floatUp 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28) forwards;
+    }
+    @keyframes floatUp {
+      from { opacity: 0; transform: translate(-50%, 20px); }
+      to { opacity: 1; transform: translate(-50%, 0); }
+    }
+  </style>
+</head>
+<body class="h-screen w-screen overflow-hidden flex flex-col text-slate-800">
+
+  <!-- Top Navigation Header -->
+  <header class="bg-amber-50/90 backdrop-blur border-b-2 border-amber-200 px-4 py-2 flex items-center justify-between z-20 shrink-0">
+    <div class="flex items-center gap-2">
+      <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-amber-500 to-orange-400 flex items-center justify-center text-white text-xl shadow-md transform -rotate-3">
+        👾
+      </div>
+      <div>
+        <h1 class="text-lg md:text-xl font-bold tracking-tight text-amber-900 brand-font flex items-center gap-1.5 flex-wrap">
+          奇幻怪獸拼貼樂園
+          <span class="text-xs px-2.5 py-0.5 bg-purple-100 text-purple-800 font-bold rounded-full border border-purple-300">
+            設計：陳佳釧老師
+          </span>
+          <span class="text-xs px-2 py-0.5 bg-orange-100 text-orange-700 font-semibold rounded-full border border-orange-300 hidden sm:inline-block">
+            免登入即可創作
+          </span>
+        </h1>
+        <p class="text-[11px] text-amber-700/80 -mt-0.5">剪紙立體怪物 × 自由著色 × 觸控手寫簽名</p>
+      </div>
+    </div>
+
+    <!-- Top Action Buttons -->
+    <div class="flex items-center gap-2">
+      <!-- Student Name Input & Canvas Badge Generator -->
+      <div class="flex items-center gap-1 bg-purple-50/80 p-1 rounded-xl border border-purple-200">
+        <input id="studentNameInput" type="text" placeholder="輸入你的名字" class="w-24 sm:w-28 text-xs px-2 py-1 rounded-lg border border-purple-300 focus:outline-none focus:ring-2 focus:ring-purple-400 bg-white font-medium" maxlength="10">
+        <button id="btnQuickStamp" class="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-purple-600 text-white font-bold text-xs hover:bg-purple-700 active:scale-95 transition shadow-sm whitespace-nowrap" title="在畫布上放上自己的名字名牌">
+          <i class="fa-solid fa-id-badge text-xs"></i>
+          <span>放上名字名牌</span>
+        </button>
+      </div>
+
+      <!-- Clear Canvas -->
+      <button id="btnClear" class="p-2 md:px-3 md:py-1.5 rounded-xl bg-rose-50 text-rose-600 border border-rose-200 text-xs md:text-sm font-bold hover:bg-rose-100 active:scale-95 transition flex items-center gap-1">
+        <i class="fa-solid fa-trash-can"></i>
+        <span class="hidden sm:inline">清空重來</span>
+      </button>
+
+      <!-- Save Photo / Export -->
+      <button id="btnExport" class="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-bold text-xs md:text-sm shadow-md hover:brightness-105 active:scale-95 transition">
+        <i class="fa-solid fa-camera"></i>
+        <span>存成照片</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Workspace (Full viewport flexible layout) -->
+  <main class="flex-1 flex flex-col md:flex-row overflow-hidden relative">
+
+    <!-- Left / Top Tool Panel (Shapes, Parts, Drawing, Colors) -->
+    <aside class="w-full md:w-80 lg:w-96 bg-white/95 border-b-2 md:border-b-0 md:border-r-2 border-amber-200 flex flex-col shrink-0 z-10 shadow-lg md:h-full max-h-[38vh] md:max-h-full">
+      
+      <!-- Primary Tab Navigation -->
+      <div class="flex border-b border-amber-200 bg-amber-100/50 p-1.5 gap-1 shrink-0 overflow-x-auto no-scrollbar">
+        <button data-tab="bodies" class="tab-btn active-tab flex-1 py-2 px-2 text-xs md:text-sm font-black rounded-lg text-amber-900 bg-white shadow-sm flex items-center justify-center gap-1.5 transition">
+          <i class="fa-solid fa-shapes text-orange-500"></i> 怪獸形體
+        </button>
+        <button data-tab="parts" class="tab-btn flex-1 py-2 px-2 text-xs md:text-sm font-black rounded-lg text-amber-800 hover:bg-white/60 flex items-center justify-center gap-1.5 transition">
+          <i class="fa-solid fa-eye text-emerald-500"></i> 五官與手腳
+        </button>
+        <button data-tab="paint" class="tab-btn flex-1 py-2 px-2 text-xs md:text-sm font-black rounded-lg text-amber-800 hover:bg-white/60 flex items-center justify-center gap-1.5 transition">
+          <i class="fa-solid fa-pen-nib text-purple-500"></i> 觸控手寫
+        </button>
+      </div>
+
+      <!-- Tab Content Area (Scrollable) -->
+      <div class="flex-1 overflow-y-auto p-3 space-y-3.5 no-scrollbar">
+
+        <!-- TAB 1: Monster Bodies (At least 3 distinct shapes, in craft paper style) -->
+        <section id="tab-bodies" class="space-y-3">
+          <div class="flex items-center justify-between text-xs text-amber-800 font-bold">
+            <span>選擇形體加入畫布（可放很多隻）：</span>
+            <span class="text-[11px] text-orange-600 bg-orange-50 px-2 py-0.5 rounded-full border border-orange-200">點擊即加入</span>
+          </div>
+
+          <!-- Body Shapes Grid -->
+          <div class="grid grid-cols-2 gap-2.5">
+            <!-- 1. White Ghost Monster (New) -->
+            <button class="craft-card p-2.5 flex flex-col items-center gap-1.5 group bg-slate-50 hover:bg-white" onclick="addMonsterBody('white_ghost')">
+              <svg width="74" height="60" viewBox="0 0 100 80" class="filter drop-shadow-sm group-hover:scale-105 transition">
+                <path d="M 50 14 C 30 14 22 36 22 56 Q 30 68 40 58 Q 50 68 60 58 Q 70 68 78 56 C 78 36 70 14 50 14 Z" fill="#ffffff" stroke="#2b2d42" stroke-width="3.5" stroke-linejoin="round"/>
+              </svg>
+              <span class="text-xs font-bold text-slate-800 flex items-center gap-1">
+                👻 白色幽靈怪
+              </span>
+            </button>
+
+            <!-- 2. Orange Pumpkin Monster (New) -->
+            <button class="craft-card p-2.5 flex flex-col items-center gap-1.5 group" onclick="addMonsterBody('pumpkin')">
+              <svg width="74" height="60" viewBox="0 0 100 80" class="filter drop-shadow-sm group-hover:scale-105 transition">
+                <rect x="46" y="8" width="8" height="12" rx="3" fill="#16a34a" stroke="#14532d" stroke-width="2"/>
+                <ellipse cx="50" cy="48" rx="42" ry="28" fill="#ea580c" stroke="#431407" stroke-width="3.5"/>
+                <ellipse cx="50" cy="48" rx="26" ry="27" fill="#f97316" stroke="#431407" stroke-width="2.5"/>
+                <ellipse cx="50" cy="48" rx="14" ry="25" fill="#fb923c" stroke="#431407" stroke-width="2"/>
+              </svg>
+              <span class="text-xs font-bold text-slate-800 flex items-center gap-1">
+                🎃 橘色南瓜怪
+              </span>
+            </button>
+
+            <!-- 3. Oval Bean Monster (Yellow in photo) -->
+            <button class="craft-card p-2.5 flex flex-col items-center gap-1.5 group" onclick="addMonsterBody('oval')">
+              <svg width="74" height="60" viewBox="0 0 100 80" class="filter drop-shadow-sm group-hover:scale-105 transition">
+                <ellipse cx="50" cy="40" rx="46" ry="32" fill="#ffd166" stroke="#2b2d42" stroke-width="3.5" />
+                <ellipse cx="40" cy="30" rx="12" ry="5" fill="#ffe29a" opacity="0.6"/>
+              </svg>
+              <span class="text-xs font-bold text-slate-700">胖胖橢圓豆豆怪</span>
+            </button>
+
+            <!-- 4. Horned Spiky Monster (Dark monster in photo) -->
+            <button class="craft-card p-2.5 flex flex-col items-center gap-1.5 group" onclick="addMonsterBody('horned')">
+              <svg width="74" height="60" viewBox="0 0 100 80" class="filter drop-shadow-sm group-hover:scale-105 transition">
+                <path d="M20 70 L20 30 L32 10 L44 26 L56 26 L68 10 L80 30 L80 70 Z" fill="#3a405a" stroke="#1d202d" stroke-width="3.5" stroke-linejoin="round"/>
+                <polygon points="32,10 44,26 24,28" fill="#525b7f" opacity="0.7"/>
+              </svg>
+              <span class="text-xs font-bold text-slate-700">三叉狂野角怪</span>
+            </button>
+
+            <!-- 5. Scalloped Jellyfish Monster (Purple one in photo) -->
+            <button class="craft-card p-2.5 flex flex-col items-center gap-1.5 group" onclick="addMonsterBody('jelly')">
+              <svg width="74" height="60" viewBox="0 0 100 80" class="filter drop-shadow-sm group-hover:scale-105 transition">
+                <path d="M18 68 Q18 16 50 16 Q82 16 82 68 L72 60 L62 68 L52 60 L42 68 L32 60 L22 68 Z" fill="#9d4edd" stroke="#240046" stroke-width="3.5" stroke-linejoin="round" />
+              </svg>
+              <span class="text-xs font-bold text-slate-700">流蘇水母怪</span>
+            </button>
+
+            <!-- 6. Square Block Robot Monster (Orange in photo) -->
+            <button class="craft-card p-2.5 flex flex-col items-center gap-1.5 group" onclick="addMonsterBody('rect')">
+              <svg width="74" height="60" viewBox="0 0 100 80" class="filter drop-shadow-sm group-hover:scale-105 transition">
+                <rect x="22" y="16" width="56" height="52" rx="14" fill="#ff70a6" stroke="#59132d" stroke-width="3.5"/>
+                <rect x="30" y="24" width="40" height="36" rx="8" fill="#ff99c8" opacity="0.6"/>
+              </svg>
+              <span class="text-xs font-bold text-slate-700">圓角方塊怪</span>
+            </button>
+
+            <!-- 7. Chubby Pear Monster -->
+            <button class="craft-card p-2.5 flex flex-col items-center gap-1.5 group" onclick="addMonsterBody('blob')">
+              <svg width="74" height="60" viewBox="0 0 100 80" class="filter drop-shadow-sm group-hover:scale-105 transition">
+                <path d="M32 28 C26 12 74 12 68 28 C88 40 88 72 50 72 C12 72 12 40 32 28 Z" fill="#06d6a0" stroke="#045a43" stroke-width="3.5"/>
+              </svg>
+              <span class="text-xs font-bold text-slate-700">梨形泡泡怪</span>
+            </button>
+
+            <!-- 8. Wave Bottom Ghost -->
+            <button class="craft-card p-2.5 flex flex-col items-center gap-1.5 group" onclick="addMonsterBody('ghost')">
+              <svg width="74" height="60" viewBox="0 0 100 80" class="filter drop-shadow-sm group-hover:scale-105 transition">
+                <path d="M22 68 C16 40 25 15 50 15 C75 15 84 40 78 68 Q64 56 50 68 Q36 56 22 68 Z" fill="#4ea8de" stroke="#163952" stroke-width="3.5"/>
+              </svg>
+              <span class="text-xs font-bold text-slate-700">淘氣波浪怪</span>
+            </button>
+          </div>
+        </section>
+
+        <!-- TAB 2: Facial Features & Limbs (Collage parts) -->
+        <section id="tab-parts" class="space-y-3 hidden">
+          <!-- Subcategory Filter Pills -->
+          <div class="flex items-center gap-1 text-xs border-b border-amber-100 pb-2">
+            <button class="part-filter-btn px-2.5 py-1 rounded-full bg-amber-600 text-white font-bold" data-category="eyes">大眼晴</button>
+            <button class="part-filter-btn px-2.5 py-1 rounded-full bg-amber-100 text-amber-800 font-bold hover:bg-amber-200" data-category="mouths">怪獸大嘴</button>
+            <button class="part-filter-btn px-2.5 py-1 rounded-full bg-amber-100 text-amber-800 font-bold hover:bg-amber-200" data-category="limbs">長手長腳</button>
+            <button class="part-filter-btn px-2.5 py-1 rounded-full bg-amber-100 text-amber-800 font-bold hover:bg-amber-200" data-category="decor">犄角與斑紋</button>
+          </div>
+
+          <!-- Items Grid: Eyes -->
+          <div id="cat-eyes" class="parts-grid grid grid-cols-3 gap-2">
+            <!-- Big Single Eye -->
+            <button class="craft-card p-2 flex flex-col items-center gap-1" onclick="addCollagePart('eye_single')">
+              <svg width="48" height="48" viewBox="0 0 60 60">
+                <circle cx="30" cy="30" r="24" fill="#ffffff" stroke="#222" stroke-width="3"/>
+                <circle cx="34" cy="30" r="10" fill="#111"/>
+                <circle cx="37" cy="27" r="3.5" fill="#fff"/>
+              </svg>
+              <span class="text-[10px] font-bold">逗趣大眼</span>
+            </button>
+
+            <!-- Three Eyes Gang -->
+            <button class="craft-card p-2 flex flex-col items-center gap-1" onclick="addCollagePart('eye_triple')">
+              <svg width="48" height="48" viewBox="0 0 60 60">
+                <circle cx="16" cy="34" r="12" fill="#fff" stroke="#222" stroke-width="2.5"/>
+                <circle cx="16" cy="34" r="5" fill="#111"/>
+                <circle cx="30" cy="24" r="14" fill="#fff" stroke="#222" stroke-width="2.5"/>
+                <circle cx="32" cy="22" r="6" fill="#111"/>
+                <circle cx="44" cy="34" r="12" fill="#fff" stroke="#222" stroke-width="2.5"/>
+                <circle cx="43" cy="35" r="5" fill="#111"/>
+              </svg>
+              <span class="text-[10px] font-bold">三連眼怪</span>
+            </button>
+
+            <!-- Googly Pupil Eyes Pair -->
+            <button class="craft-card p-2 flex flex-col items-center gap-1" onclick="addCollagePart('eye_pair_wonky')">
+              <svg width="48" height="48" viewBox="0 0 60 60">
+                <circle cx="20" cy="30" r="15" fill="#fff9db" stroke="#222" stroke-width="2.5"/>
+                <circle cx="15" cy="34" r="6" fill="#2b2d42"/>
+                <circle cx="42" cy="30" r="15" fill="#fff9db" stroke="#222" stroke-width="2.5"/>
+                <circle cx="45" cy="26" r="6" fill="#2b2d42"/>
+              </svg>
+              <span class="text-[10px] font-bold">鬥雞雙眼</span>
+            </button>
+
+            <!-- Cyclops Cute -->
+            <button class="craft-card p-2 flex flex-col items-center gap-1" onclick="addCollagePart('eye_color_ring')">
+              <svg width="48" height="48" viewBox="0 0 60 60">
+                <circle cx="30" cy="30" r="23" fill="#ffd166" stroke="#222" stroke-width="2.5"/>
+                <circle cx="30" cy="30" r="15" fill="#ffffff" stroke="#222" stroke-width="2"/>
+                <circle cx="30" cy="30" r="7" fill="#0077b6"/>
+              </svg>
+              <span class="text-[10px] font-bold">彩色彩虹眼</span>
+            </button>
+
+            <!-- Sleepy Eye -->
+            <button class="craft-card p-2 flex flex-col items-center gap-1" onclick="addCollagePart('eye_sleepy')">
+              <svg width="48" height="48" viewBox="0 0 60 60">
+                <circle cx="30" cy="30" r="22" fill="#fff" stroke="#222" stroke-width="2.5"/>
+                <circle cx="30" cy="33" r="8" fill="#222"/>
+                <path d="M8 30 Q30 38 52 30" fill="none" stroke="#222" stroke-width="3" stroke-linecap="round"/>
+              </svg>
+              <span class="text-[10px] font-bold">愛睏半瞇眼</span>
+            </button>
+
+            <!-- Star Eye -->
+            <button class="craft-card p-2 flex flex-col items-center gap-1" onclick="addCollagePart('eye_star')">
+              <svg width="48" height="48" viewBox="0 0 60 60">
+                <circle cx="30" cy="30" r="23" fill="#ffffff" stroke="#222" stroke-width="2.5"/>
+                <polygon points="30,16 33,25 43,26 35,32 38,42 30,36 22,42 25,32 17,26 27,25" fill="#e63946"/>
+              </svg>
+              <span class="text-[10px] font-bold">星星崇拜眼</span>
+            </button>
+          </div>
+
+          <!-- Items Grid: Mouths -->
+          <div id="cat-mouths" class="parts-grid grid grid-cols-3 gap-2 hidden">
+            <!-- Wide Grin with 2 teeth -->
+            <button class="craft-card p-2 flex flex-col items-center gap-1" onclick="addCollagePart('mouth_grin_2teeth')">
+              <svg width="48" height="48" viewBox="0 0 60 60">
+                <path d="M12 25 Q30 50 48 25 Z" fill="#222" stroke="#222" stroke-width="2"/>
+                <rect x="22" y="25" width="6" height="8" rx="1" fill="#fff"/>
+                <rect x="32" y="25" width="6" height="8" rx="1" fill="#fff"/>
+              </svg>
+              <span class="text-[10px] font-bold">門牙咧嘴笑</span>
+            </button>
+
+            <!-- Sharp Fangs Monster Mouth -->
+            <button class="craft-card p-2 flex flex-col items-center gap-1" onclick="addCollagePart('mouth_fangs')">
+              <svg width="48" height="48" viewBox="0 0 60 60">
+                <path d="M10 26 Q30 54 50 26 Z" fill="#c1121f" stroke="#222" stroke-width="2"/>
+                <polygon points="18,26 22,38 26,26" fill="#fff"/>
+                <polygon points="34,26 38,38 42,26" fill="#fff"/>
+              </svg>
+              <span class="text-[10px] font-bold">尖牙吸血鬼</span>
+            </button>
+
+            <!-- Flat Paper Stick Mouth -->
+            <button class="craft-card p-2 flex flex-col items-center gap-1" onclick="addCollagePart('mouth_paper_bar')">
+              <svg width="48" height="48" viewBox="0 0 60 60">
+                <rect x="10" y="26" width="40" height="8" rx="4" fill="#0077b6" stroke="#222" stroke-width="2"/>
+                <rect x="25" y="23" width="5" height="14" rx="2" fill="#fff" stroke="#222" stroke-width="1.5"/>
+              </svg>
+              <span class="text-[10px] font-bold">貼條木偶嘴</span>
+            </button>
+
+            <!-- Stitched Frankenstein Mouth -->
+            <button class="craft-card p-2 flex flex-col items-center gap-1" onclick="addCollagePart('mouth_stitched')">
+              <svg width="48" height="48" viewBox="0 0 60 60">
+                <line x1="12" y1="30" x2="48" y2="30" stroke="#222" stroke-width="3" stroke-linecap="round"/>
+                <line x1="20" y1="23" x2="20" y2="37" stroke="#222" stroke-width="2.5" stroke-linecap="round"/>
+                <line x1="30" y1="21" x2="30" y2="39" stroke="#222" stroke-width="2.5" stroke-linecap="round"/>
+                <line x1="40" y1="23" x2="40" y2="37" stroke="#222" stroke-width="2.5" stroke-linecap="round"/>
+              </svg>
+              <span class="text-[10px] font-bold">縫線怪客嘴</span>
+            </button>
+
+            <!-- Big Tongue Out -->
+            <button class="craft-card p-2 flex flex-col items-center gap-1" onclick="addCollagePart('mouth_tongue')">
+              <svg width="48" height="48" viewBox="0 0 60 60">
+                <path d="M12 28 Q30 46 48 28 Z" fill="#222"/>
+                <path d="M22 34 Q30 52 38 34" fill="#ff4d6d" stroke="#222" stroke-width="2"/>
+              </svg>
+              <span class="text-[10px] font-bold">吐舌調皮嘴</span>
+            </button>
+
+            <!-- Kiss O-mouth -->
+            <button class="craft-card p-2 flex flex-col items-center gap-1" onclick="addCollagePart('mouth_circle_o')">
+              <svg width="48" height="48" viewBox="0 0 60 60">
+                <ellipse cx="30" cy="30" rx="12" ry="16" fill="#2b2d42" stroke="#222" stroke-width="2"/>
+                <ellipse cx="30" cy="30" rx="6" ry="9" fill="#ff758f"/>
+              </svg>
+              <span class="text-[10px] font-bold">圓圈大驚奇</span>
+            </button>
+          </div>
+
+          <!-- Items Grid: Limbs (Striped legs and bendy arms from reference photo) -->
+          <div id="cat-limbs" class="parts-grid grid grid-cols-3 gap-2 hidden">
+            <!-- Striped Long Leg (Like purple & black legs in photo) -->
+            <button class="craft-card p-2 flex flex-col items-center gap-1" onclick="addCollagePart('limb_striped_leg')">
+              <svg width="48" height="48" viewBox="0 0 60 60">
+                <rect x="22" y="6" width="16" height="42" fill="#52b788" stroke="#1b4332" stroke-width="2"/>
+                <line x1="22" y1="16" x2="38" y2="16" stroke="#1b4332" stroke-width="3"/>
+                <line x1="22" y1="26" x2="38" y2="26" stroke="#1b4332" stroke-width="3"/>
+                <line x1="22" y1="36" x2="38" y2="36" stroke="#1b4332" stroke-width="3"/>
+                <rect x="20" y="44" width="20" height="8" rx="2" fill="#1b4332"/>
+              </svg>
+              <span class="text-[10px] font-bold">條紋長腳</span>
+            </button>
+
+            <!-- Patterned Long Arm (Green arm in photo) -->
+            <button class="craft-card p-2 flex flex-col items-center gap-1" onclick="addCollagePart('limb_pattern_arm')">
+              <svg width="48" height="48" viewBox="0 0 60 60">
+                <path d="M12 12 Q40 20 44 48" fill="none" stroke="#2a9d8f" stroke-width="12" stroke-linecap="round"/>
+                <circle cx="24" cy="18" r="2.5" fill="#fff"/>
+                <circle cx="36" cy="30" r="2.5" fill="#fff"/>
+                <circle cx="42" cy="42" r="2.5" fill="#fff"/>
+              </svg>
+              <span class="text-[10px] font-bold">圓點長手臂</span>
+            </button>
+
+            <!-- Accordion Zigzag Limb -->
+            <button class="craft-card p-2 flex flex-col items-center gap-1" onclick="addCollagePart('limb_zigzag')">
+              <svg width="48" height="48" viewBox="0 0 60 60">
+                <path d="M30 6 L44 16 L16 26 L44 36 L16 46 L30 54" fill="none" stroke="#e76f51" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <span class="text-[10px] font-bold">彈簧折線肢體</span>
+            </button>
+
+            <!-- Bat Wing (Left/Right) -->
+            <button class="craft-card p-2 flex flex-col items-center gap-1" onclick="addCollagePart('limb_bat_wing')">
+              <svg width="48" height="48" viewBox="0 0 60 60">
+                <path d="M8 38 C16 16 38 18 52 24 C44 32 40 40 32 38 C26 44 18 46 8 38 Z" fill="#4a5568" stroke="#1a202c" stroke-width="2"/>
+                <circle cx="24" cy="28" r="2" fill="#68d391"/>
+                <circle cx="36" cy="30" r="2" fill="#68d391"/>
+              </svg>
+              <span class="text-[10px] font-bold">蝙蝠小飛翼</span>
+            </button>
+
+            <!-- Claw Hand -->
+            <button class="craft-card p-2 flex flex-col items-center gap-1" onclick="addCollagePart('limb_claw_hand')">
+              <svg width="48" height="48" viewBox="0 0 60 60">
+                <rect x="24" y="6" width="12" height="28" fill="#f4a261" stroke="#264653" stroke-width="2"/>
+                <polygon points="18,34 26,48 28,34" fill="#f4a261" stroke="#264653" stroke-width="1.5"/>
+                <polygon points="26,34 30,52 34,34" fill="#f4a261" stroke="#264653" stroke-width="1.5"/>
+                <polygon points="32,34 38,48 42,34" fill="#f4a261" stroke="#264653" stroke-width="1.5"/>
+              </svg>
+              <span class="text-[10px] font-bold">怪獸小抓手</span>
+            </button>
+
+            <!-- High Socks Foot -->
+            <button class="craft-card p-2 flex flex-col items-center gap-1" onclick="addCollagePart('limb_boot')">
+              <svg width="48" height="48" viewBox="0 0 60 60">
+                <rect x="22" y="10" width="14" height="26" fill="#3a86ff" stroke="#222" stroke-width="2"/>
+                <line x1="22" y1="16" x2="36" y2="16" stroke="#ffffff" stroke-width="2.5"/>
+                <path d="M 22 34 L 42 34 C 47 34 47 46 38 46 L 16 46 C 14 46 14 34 22 34 Z" fill="#ff006e" stroke="#222" stroke-width="2"/>
+              </svg>
+              <span class="text-[10px] font-bold">穿鞋腳ㄚ</span>
+            </button>
+          </div>
+
+          <!-- Items Grid: Horns & Decorative Details -->
+          <div id="cat-decor" class="parts-grid grid grid-cols-3 gap-2 hidden">
+            <!-- Antenna Sticks (Yellow monster pink straws in photo) -->
+            <button class="craft-card p-2 flex flex-col items-center gap-1" onclick="addCollagePart('decor_antenna_tuft')">
+              <svg width="48" height="48" viewBox="0 0 60 60">
+                <line x1="20" y1="46" x2="16" y2="12" stroke="#ff4d6d" stroke-width="5" stroke-linecap="round"/>
+                <line x1="30" y1="46" x2="30" y2="8" stroke="#ff758f" stroke-width="5" stroke-linecap="round"/>
+                <line x1="40" y1="46" x2="44" y2="12" stroke="#ff4d6d" stroke-width="5" stroke-linecap="round"/>
+              </svg>
+              <span class="text-[10px] font-bold">粉紅觸角梳</span>
+            </button>
+
+            <!-- Curved Yellow Horns (Purple monster in photo) -->
+            <button class="craft-card p-2 flex flex-col items-center gap-1" onclick="addCollagePart('decor_horns_pair')">
+              <svg width="48" height="48" viewBox="0 0 60 60">
+                <path d="M14 44 Q8 20 24 14 Q22 28 22 44 Z" fill="#ffb703" stroke="#222" stroke-width="2"/>
+                <path d="M46 44 Q52 20 36 14 Q38 28 38 44 Z" fill="#ffb703" stroke="#222" stroke-width="2"/>
+              </svg>
+              <span class="text-[10px] font-bold">可愛黃雙角</span>
+            </button>
+
+            <!-- Pink Blush Cheeks -->
+            <button class="craft-card p-2 flex flex-col items-center gap-1" onclick="addCollagePart('decor_blush_pair')">
+              <svg width="48" height="48" viewBox="0 0 60 60">
+                <circle cx="16" cy="30" r="10" fill="#ff70a6" opacity="0.85"/>
+                <circle cx="44" cy="30" r="10" fill="#ff70a6" opacity="0.85"/>
+              </svg>
+              <span class="text-[10px] font-bold">腮紅圓圓貼</span>
+            </button>
+
+            <!-- Polka Dots Cluster (Monster belly spots) -->
+            <button class="craft-card p-2 flex flex-col items-center gap-1" onclick="addCollagePart('decor_spots_cluster')">
+              <svg width="48" height="48" viewBox="0 0 60 60">
+                <circle cx="20" cy="22" r="7" fill="#e63946"/>
+                <circle cx="38" cy="24" r="9" fill="#ff4d6d"/>
+                <circle cx="25" cy="40" r="8" fill="#e63946"/>
+                <circle cx="42" cy="40" r="6" fill="#ff758f"/>
+              </svg>
+              <span class="text-[10px] font-bold">彩色斑點貼</span>
+            </button>
+
+            <!-- Alien Antenna Orb -->
+            <button class="craft-card p-2 flex flex-col items-center gap-1" onclick="addCollagePart('decor_alien_orb')">
+              <svg width="48" height="48" viewBox="0 0 60 60">
+                <line x1="30" y1="48" x2="30" y2="20" stroke="#222" stroke-width="4"/>
+                <circle cx="30" cy="16" r="10" fill="#06d6a0" stroke="#222" stroke-width="2"/>
+              </svg>
+              <span class="text-[10px] font-bold">外星人天線</span>
+            </button>
+
+            <!-- Wizard / Party Hat -->
+            <button class="craft-card p-2 flex flex-col items-center gap-1" onclick="addCollagePart('decor_party_hat')">
+              <svg width="48" height="48" viewBox="0 0 60 60">
+                <polygon points="30,8 14,46 46,46" fill="#8338ec" stroke="#222" stroke-width="2"/>
+                <circle cx="30" cy="8" r="4" fill="#ffbe0b"/>
+                <line x1="20" y1="32" x2="40" y2="32" stroke="#ffbe0b" stroke-width="3"/>
+              </svg>
+              <span class="text-[10px] font-bold">派對小尖帽</span>
+            </button>
+          </div>
+        </section>
+
+        <!-- TAB 3: Touch Signature & Freehand Drawing -->
+        <section id="tab-paint" class="space-y-3.5 hidden">
+          <div class="bg-amber-50 p-2.5 rounded-xl border border-amber-200">
+            <h3 class="text-xs font-bold text-amber-900 flex items-center gap-1.5 mb-1">
+              <i class="fa-solid fa-signature text-purple-600"></i>
+              觸控簽名與彩繪筆
+            </h3>
+            <p class="text-[11px] text-amber-700 leading-relaxed">
+              請用手指或觸控筆在畫布任何位置直接簽名寫字，例如寫下自己的名字、班級或是給怪獸畫上有趣的紋路。
+            </p>
+          </div>
+
+          <!-- Drawing Toggle & Brush Settings -->
+          <div class="flex items-center gap-2">
+            <button id="btnToggleDraw" class="flex-1 py-2 px-3 rounded-xl border-2 border-purple-400 font-bold text-xs flex items-center justify-center gap-2 bg-purple-50 text-purple-700 hover:bg-purple-100 transition shadow-sm">
+              <i class="fa-solid fa-paintbrush"></i>
+              <span id="drawStatusText">開啟畫筆模式</span>
+            </button>
+            <button id="btnEraser" class="py-2 px-3 rounded-xl border border-slate-300 font-bold text-xs flex items-center justify-center gap-1.5 bg-slate-100 text-slate-700 hover:bg-slate-200 transition">
+              <i class="fa-solid fa-eraser"></i>
+              <span>橡皮擦</span>
+            </button>
+          </div>
+
+          <!-- Pen Size Slider -->
+          <div class="space-y-1">
+            <div class="flex justify-between text-[11px] font-bold text-slate-600">
+              <span>畫筆粗細</span>
+              <span id="brushSizeVal">6 px</span>
+            </div>
+            <input id="brushSizeSlider" type="range" min="2" max="32" value="6" class="w-full accent-purple-600 cursor-pointer">
+          </div>
+
+          <!-- Pen Colors Palette -->
+          <div class="space-y-1.5">
+            <span class="text-[11px] font-bold text-slate-600">畫筆顏色</span>
+            <div class="grid grid-cols-7 gap-1.5">
+              <button class="pen-color-btn w-7 h-7 rounded-full border-2 border-slate-700 shadow-sm" style="background-color: #1e293b;" data-color="#1e293b"></button>
+              <button class="pen-color-btn w-7 h-7 rounded-full border border-white shadow-sm" style="background-color: #e11d48;" data-color="#e11d48"></button>
+              <button class="pen-color-btn w-7 h-7 rounded-full border border-white shadow-sm" style="background-color: #ea580c;" data-color="#ea580c"></button>
+              <button class="pen-color-btn w-7 h-7 rounded-full border border-white shadow-sm" style="background-color: #eab308;" data-color="#eab308"></button>
+              <button class="pen-color-btn w-7 h-7 rounded-full border border-white shadow-sm" style="background-color: #16a34a;" data-color="#16a34a"></button>
+              <button class="pen-color-btn w-7 h-7 rounded-full border border-white shadow-sm" style="background-color: #0284c7;" data-color="#0284c7"></button>
+              <button class="pen-color-btn w-7 h-7 rounded-full border border-white shadow-sm" style="background-color: #9333ea;" data-color="#9333ea"></button>
+            </div>
+          </div>
+        </section>
+
+      </div>
+
+      <!-- Object Inspector & Quick Color Tint Bar (Docked at bottom of sidebar) -->
+      <div id="inspectorPanel" class="border-t-2 border-amber-200 bg-amber-50/70 p-2.5 flex flex-col gap-2 shrink-0">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-bold text-amber-900 flex items-center gap-1">
+            <i class="fa-solid fa-wand-magic-sparkles text-amber-600"></i>
+            <span id="selectedLabel">選取物件變色 / 著色：</span>
+          </span>
+          <!-- Layer and object management buttons -->
+          <div class="flex items-center gap-1">
+            <button id="btnBringUp" title="往上一層 (浮出表面)" class="px-2 h-7 rounded bg-amber-500 text-white font-bold text-xs border border-amber-600 hover:bg-amber-600 flex items-center gap-1 shadow-sm">
+              <i class="fa-solid fa-arrow-up"></i>
+              <span>往上一層</span>
+            </button>
+            <button id="btnSendDown" title="往下一層" class="px-2 h-7 rounded bg-white text-slate-700 font-bold text-xs border border-slate-300 hover:bg-slate-100 flex items-center gap-1">
+              <i class="fa-solid fa-arrow-down"></i>
+              <span class="hidden sm:inline">往下一層</span>
+            </button>
+            <button id="btnBringFront" title="移到最頂層" class="w-7 h-7 rounded bg-white text-slate-700 text-xs border border-slate-300 hover:bg-slate-50 flex items-center justify-center">
+              <i class="fa-solid fa-angles-up"></i>
+            </button>
+            <button id="btnSendBack" title="移到最底層" class="w-7 h-7 rounded bg-white text-slate-700 text-xs border border-slate-300 hover:bg-slate-50 flex items-center justify-center">
+              <i class="fa-solid fa-angles-down"></i>
+            </button>
+            <button id="btnDuplicate" title="複製一份" class="w-7 h-7 rounded bg-white text-emerald-700 text-xs border border-slate-300 hover:bg-emerald-50 flex items-center justify-center">
+              <i class="fa-solid fa-clone"></i>
+            </button>
+            <button id="btnDeleteSelected" title="刪除選取物件" class="w-7 h-7 rounded bg-white text-rose-600 text-xs border border-slate-300 hover:bg-rose-50 flex items-center justify-center">
+              <i class="fa-solid fa-trash"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- Palette Swatches for quick monster coloring -->
+        <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
+          <!-- 10 vibrant paper craft colors -->
+          <button class="palette-swatch w-7 h-7 rounded-lg shrink-0 border-2 border-white shadow-sm" style="background-color: #ffd166;" data-fill="#ffd166"></button>
+          <button class="palette-swatch w-7 h-7 rounded-lg shrink-0 border-2 border-white shadow-sm" style="background-color: #ff6b6b;" data-fill="#ff6b6b"></button>
+          <button class="palette-swatch w-7 h-7 rounded-lg shrink-0 border-2 border-white shadow-sm" style="background-color: #ff9f1c;" data-fill="#ff9f1c"></button>
+          <button class="palette-swatch w-7 h-7 rounded-lg shrink-0 border-2 border-white shadow-sm" style="background-color: #06d6a0;" data-fill="#06d6a0"></button>
+          <button class="palette-swatch w-7 h-7 rounded-lg shrink-0 border-2 border-white shadow-sm" style="background-color: #118ab2;" data-fill="#118ab2"></button>
+          <button class="palette-swatch w-7 h-7 rounded-lg shrink-0 border-2 border-white shadow-sm" style="background-color: #9d4edd;" data-fill="#9d4edd"></button>
+          <button class="palette-swatch w-7 h-7 rounded-lg shrink-0 border-2 border-white shadow-sm" style="background-color: #ff70a6;" data-fill="#ff70a6"></button>
+          <button class="palette-swatch w-7 h-7 rounded-lg shrink-0 border-2 border-white shadow-sm" style="background-color: #2b2d42;" data-fill="#2b2d42"></button>
+          <button class="palette-swatch w-7 h-7 rounded-lg shrink-0 border-2 border-white shadow-sm" style="background-color: #ffffff;" data-fill="#ffffff"></button>
+          <!-- Custom color input -->
+          <label class="w-7 h-7 rounded-lg shrink-0 border-2 border-dashed border-amber-400 bg-white flex items-center justify-center cursor-pointer shadow-sm relative overflow-hidden" title="自選顏色">
+            <i class="fa-solid fa-palette text-xs text-amber-600"></i>
+            <input type="color" id="customColorPicker" value="#ffd166" class="opacity-0 absolute inset-0 cursor-pointer">
+          </label>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Right / Center Canvas Stage -->
+    <section class="flex-1 flex flex-col relative overflow-hidden bg-stone-100">
+      
+      <!-- Stage Tip Bar -->
+      <div class="bg-amber-100/70 border-b border-amber-200/70 px-3 py-1.5 flex items-center justify-between text-xs text-amber-900 shrink-0">
+        <div class="flex items-center gap-1.5 overflow-hidden text-ellipsis whitespace-nowrap">
+          <i class="fa-regular fa-lightbulb text-amber-600"></i>
+          <span class="font-medium">小撇步：點選怪物或五官後，可旋轉上方手把、縮放四角，或直接拖曳移動位置！</span>
+        </div>
+        <div class="flex items-center gap-2 shrink-0">
+          <span id="canvasObjectCount" class="text-[11px] font-bold px-2 py-0.5 bg-white/80 rounded-md border border-amber-200">
+            畫布物件: 0
+          </span>
+        </div>
+      </div>
+
+      <!-- Canvas Scroll/Center Wrapper -->
+      <div id="canvasContainer" class="flex-1 w-full h-full relative overflow-hidden flex items-center justify-center p-2 sm:p-4">
+        <!-- The Desk Canvas Frame with subtle paper texture -->
+        <div class="relative desk-board rounded-2xl paper-shadow border-4 border-amber-200 overflow-hidden max-w-full max-h-full">
+          <canvas id="monsterCanvas"></canvas>
+        </div>
+      </div>
+
+      <!-- Mobile Touch Helper Floating Control Bar -->
+      <div class="md:hidden absolute bottom-3 right-3 left-3 bg-white/95 backdrop-blur border-2 border-amber-200 rounded-2xl shadow-xl p-2 flex items-center justify-around z-10">
+        <button onclick="switchTab('bodies')" class="flex flex-col items-center text-xs font-bold text-amber-900">
+          <i class="fa-solid fa-shapes text-orange-500 text-base"></i>
+          <span>怪獸身軀</span>
+        </button>
+        <button onclick="switchTab('parts')" class="flex flex-col items-center text-xs font-bold text-amber-900">
+          <i class="fa-solid fa-puzzle-piece text-emerald-500 text-base"></i>
+          <span>五官配件</span>
+        </button>
+        <button onclick="switchTab('paint')" class="flex flex-col items-center text-xs font-bold text-amber-900">
+          <i class="fa-solid fa-pen-fancy text-purple-500 text-base"></i>
+          <span>手寫簽名</span>
+        </button>
+        <button onclick="canvas.discardActiveObject(); canvas.requestRenderAll();" class="flex flex-col items-center text-xs font-bold text-slate-600">
+          <i class="fa-solid fa-check text-slate-500 text-base"></i>
+          <span>完成選取</span>
+        </button>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Toast Notification element -->
+  <div id="toast" class="fixed top-16 left-1/2 -translate-x-1/2 z-50 bg-slate-900/90 text-white px-4 py-2 rounded-xl text-xs sm:text-sm font-bold shadow-2xl flex items-center gap-2 pointer-events-none opacity-0 transition-opacity duration-300">
+    <i class="fa-solid fa-circle-check text-emerald-400"></i>
+    <span id="toastMsg">通知訊息</span>
+  </div>
+
+  <!-- Clear Confirmation Custom Modal -->
+  <div id="confirmModal" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl border-2 border-amber-300 p-5 max-w-xs w-full shadow-2xl space-y-4">
+      <div class="text-center space-y-1">
+        <div class="text-3xl">🧹</div>
+        <h3 class="font-bold text-base text-slate-800">確定要清空畫布嗎？</h3>
+        <p class="text-xs text-slate-500">所有的怪獸與手寫筆跡將會被全部清除，重新開始創作。</p>
+      </div>
+      <div class="flex gap-2">
+        <button id="btnCancelClear" class="flex-1 py-2 rounded-xl bg-slate-100 font-bold text-xs text-slate-700 hover:bg-slate-200">取消</button>
+        <button id="btnConfirmClear" class="flex-1 py-2 rounded-xl bg-rose-500 font-bold text-xs text-white hover:bg-rose-600">確定清空</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Global Canvas & State Variables
+    let canvas = null;
+    let isDrawing = false;
+    let currentPenColor = '#1e293b';
+    let currentPenWidth = 6;
+
+    // Toast Notification Helper
+    function showToast(msg, icon = 'fa-circle-check text-emerald-400') {
+      const toast = document.getElementById('toast');
+      const toastMsg = document.getElementById('toastMsg');
+      toastMsg.innerText = msg;
+      toast.querySelector('i').className = `fa-solid ${icon}`;
+      toast.classList.remove('opacity-0');
+      toast.classList.add('toast-animate');
+      clearTimeout(window.toastTimer);
+      window.toastTimer = setTimeout(() => {
+        toast.classList.add('opacity-0');
+        toast.classList.remove('toast-animate');
+      }, 2400);
+    }
+
+    // Initialize Fabric Canvas on Page Load
+    function initCanvas() {
+      const container = document.getElementById('canvasContainer');
+      const maxWidth = Math.min(container.clientWidth - 16, 960);
+      const maxHeight = Math.min(container.clientHeight - 16, 720);
+
+      let targetWidth = 840;
+      let targetHeight = 620;
+
+      const scale = Math.min(maxWidth / targetWidth, maxHeight / targetHeight, 1);
+      const w = Math.floor(targetWidth * scale);
+      const h = Math.floor(targetHeight * scale);
+
+      canvas = new fabric.Canvas('monsterCanvas', {
+        width: w,
+        height: h,
+        backgroundColor: '#faf7f2',
+        preserveObjectStacking: true,
+        selectionColor: 'rgba(255, 179, 71, 0.25)',
+        selectionBorderColor: '#f97316',
+        selectionLineWidth: 2
+      });
+
+      // Customize selection handles to look cute and easy to touch
+      fabric.Object.prototype.set({
+        transparentCorners: false,
+        cornerColor: '#f97316',
+        cornerStrokeColor: '#ffffff',
+        borderColor: '#f97316',
+        cornerSize: 14,
+        cornerStyle: 'circle',
+        borderScaleFactor: 2,
+        padding: 6
+      });
+
+      // Freehand brush setup
+      canvas.freeDrawingBrush = new fabric.PencilBrush(canvas);
+      canvas.freeDrawingBrush.color = currentPenColor;
+      canvas.freeDrawingBrush.width = currentPenWidth;
+
+      // Canvas event listeners for updating status
+      canvas.on('object:added', updateCanvasStatus);
+      canvas.on('object:removed', updateCanvasStatus);
+      canvas.on('selection:created', onObjectSelected);
+      canvas.on('selection:updated', onObjectSelected);
+      canvas.on('selection:cleared', onObjectDeselected);
+
+      // Add default welcome monster on blank canvas
+      createPresetWelcomeMonster();
+    }
+
+    function updateCanvasStatus() {
+      const count = canvas.getObjects().length;
+      document.getElementById('canvasObjectCount').innerText = `畫布物件: ${count}`;
+    }
+
+    function onObjectSelected(e) {
+      const selected = e.selected ? e.selected[0] : null;
+      if (!selected) return;
+      document.getElementById('selectedLabel').innerText = '已選取物件（可按「往上一層」）：';
+      if (selected.fill && typeof selected.fill === 'string') {
+        document.getElementById('customColorPicker').value = selected.fill.startsWith('#') ? selected.fill : '#ffd166';
+      }
+    }
+
+    function onObjectDeselected() {
+      document.getElementById('selectedLabel').innerText = '選取物件變色 / 著色：';
+    }
+
+    /**
+     * Add Monster Body Shape to Canvas
+     */
+    function addMonsterBody(type) {
+      if (isDrawing) toggleDrawingMode(false);
+
+      const jitterX = (Math.random() - 0.5) * 60;
+      const jitterY = (Math.random() - 0.5) * 50;
+      const posX = canvas.width / 2 + jitterX;
+      const posY = canvas.height / 2 + jitterY;
+
+      let monsterObj = null;
+
+      const shadowOpt = new fabric.Shadow({
+        color: 'rgba(70, 45, 15, 0.14)',
+        blur: 10,
+        offsetX: 4,
+        offsetY: 6
+      });
+
+      switch (type) {
+        case 'white_ghost': {
+          const ghostPath = new fabric.Path('M 50 14 C 30 14 22 36 22 56 Q 30 68 40 58 Q 50 68 60 58 Q 70 68 78 56 C 78 36 70 14 50 14 Z', {
+            scaleX: 2.8,
+            scaleY: 2.8,
+            fill: '#ffffff',
+            stroke: '#2b2d42',
+            strokeWidth: 3.5,
+            strokeLineJoin: 'round',
+            originX: 'center',
+            originY: 'center',
+            left: posX,
+            top: posY,
+            shadow: shadowOpt
+          });
+          monsterObj = ghostPath;
+          break;
+        }
+
+        case 'pumpkin': {
+          const stem = new fabric.Rect({
+            width: 18,
+            height: 24,
+            rx: 6,
+            fill: '#16a34a',
+            stroke: '#14532d',
+            strokeWidth: 2.5,
+            originX: 'center',
+            originY: 'center',
+            top: -65
+          });
+          const baseEllipse = new fabric.Ellipse({
+            rx: 90,
+            ry: 64,
+            fill: '#ea580c',
+            stroke: '#431407',
+            strokeWidth: 4,
+            originX: 'center',
+            originY: 'center'
+          });
+          const rib1 = new fabric.Ellipse({
+            rx: 55,
+            ry: 62,
+            fill: '#f97316',
+            stroke: '#431407',
+            strokeWidth: 3,
+            originX: 'center',
+            originY: 'center'
+          });
+          const rib2 = new fabric.Ellipse({
+            rx: 28,
+            ry: 58,
+            fill: '#fb923c',
+            stroke: '#431407',
+            strokeWidth: 2,
+            originX: 'center',
+            originY: 'center'
+          });
+          monsterObj = new fabric.Group([stem, baseEllipse, rib1, rib2], {
+            left: posX,
+            top: posY,
+            originX: 'center',
+            originY: 'center',
+            shadow: shadowOpt
+          });
+          monsterObj.mainBody = baseEllipse;
+          break;
+        }
+
+        case 'oval': {
+          monsterObj = new fabric.Ellipse({
+            rx: 92,
+            ry: 64,
+            fill: '#ffd166',
+            stroke: '#2b2d42',
+            strokeWidth: 4,
+            left: posX,
+            top: posY,
+            originX: 'center',
+            originY: 'center',
+            shadow: shadowOpt
+          });
+          break;
+        }
+
+        case 'horned': {
+          const hornedPath = new fabric.Path('M 20 70 L 20 30 L 32 10 L 44 26 L 56 26 L 68 10 L 80 30 L 80 70 Z', {
+            scaleX: 2.5,
+            scaleY: 2.4,
+            fill: '#3a405a',
+            stroke: '#1d202d',
+            strokeWidth: 3.5,
+            strokeLineJoin: 'round',
+            originX: 'center',
+            originY: 'center',
+            left: posX,
+            top: posY,
+            shadow: shadowOpt
+          });
+          monsterObj = hornedPath;
+          break;
+        }
+
+        case 'jelly': {
+          const jellyPath = new fabric.Path('M 18 68 Q 18 16 50 16 Q 82 16 82 68 L 72 60 L 62 68 L 52 60 L 42 68 L 32 60 L 22 68 Z', {
+            scaleX: 2.6,
+            scaleY: 2.4,
+            fill: '#9d4edd',
+            stroke: '#240046',
+            strokeWidth: 3.5,
+            strokeLineJoin: 'round',
+            originX: 'center',
+            originY: 'center',
+            left: posX,
+            top: posY,
+            shadow: shadowOpt
+          });
+          monsterObj = jellyPath;
+          break;
+        }
+
+        case 'rect': {
+          monsterObj = new fabric.Rect({
+            width: 140,
+            height: 130,
+            rx: 24,
+            ry: 24,
+            fill: '#ff70a6',
+            stroke: '#59132d',
+            strokeWidth: 4,
+            left: posX,
+            top: posY,
+            originX: 'center',
+            originY: 'center',
+            shadow: shadowOpt
+          });
+          break;
+        }
+
+        case 'blob': {
+          const blobPath = new fabric.Path('M 32 28 C 26 12 74 12 68 28 C 88 40 88 72 50 72 C 12 72 12 40 32 28 Z', {
+            scaleX: 2.4,
+            scaleY: 2.4,
+            fill: '#06d6a0',
+            stroke: '#045a43',
+            strokeWidth: 3.5,
+            originX: 'center',
+            originY: 'center',
+            left: posX,
+            top: posY,
+            shadow: shadowOpt
+          });
+          monsterObj = blobPath;
+          break;
+        }
+
+        case 'ghost': {
+          const ghostWave = new fabric.Path('M 22 68 C 16 40 25 15 50 15 C 75 15 84 40 78 68 Q 64 56 50 68 Q 36 56 22 68 Z', {
+            scaleX: 2.6,
+            scaleY: 2.4,
+            fill: '#4ea8de',
+            stroke: '#163952',
+            strokeWidth: 3.5,
+            originX: 'center',
+            originY: 'center',
+            left: posX,
+            top: posY,
+            shadow: shadowOpt
+          });
+          monsterObj = ghostWave;
+          break;
+        }
+
+        default:
+          monsterObj = new fabric.Circle({
+            radius: 70,
+            fill: '#ffd166',
+            stroke: '#2b2d42',
+            strokeWidth: 4,
+            left: posX,
+            top: posY,
+            originX: 'center',
+            originY: 'center'
+          });
+      }
+
+      if (monsterObj) {
+        canvas.add(monsterObj);
+        canvas.setActiveObject(monsterObj);
+        canvas.requestRenderAll();
+        showToast('已加入怪獸身軀！可縮放、旋轉或選取換色', 'fa-shapes text-orange-500');
+      }
+    }
+
+    /**
+     * Add Collage Part (Eyes, Mouths, Limbs, Decors) to Canvas
+     */
+    function addCollagePart(type) {
+      if (isDrawing) toggleDrawingMode(false);
+
+      const jitterX = (Math.random() - 0.5) * 80;
+      const jitterY = (Math.random() - 0.5) * 80;
+      const posX = canvas.width / 2 + jitterX;
+      const posY = canvas.height / 2 + jitterY;
+
+      let partObj = null;
+
+      switch (type) {
+        // --- EYES ---
+        case 'eye_single': {
+          const white = new fabric.Circle({ radius: 26, fill: '#ffffff', stroke: '#222222', strokeWidth: 3, originX: 'center', originY: 'center' });
+          const pupil = new fabric.Circle({ radius: 11, fill: '#111111', left: 4, top: 0, originX: 'center', originY: 'center' });
+          const glint = new fabric.Circle({ radius: 4, fill: '#ffffff', left: 7, top: -4, originX: 'center', originY: 'center' });
+          partObj = new fabric.Group([white, pupil, glint], { left: posX, top: posY, originX: 'center', originY: 'center' });
+          break;
+        }
+
+        case 'eye_triple': {
+          const eye1 = new fabric.Group([
+            new fabric.Circle({ radius: 15, fill: '#fff', stroke: '#222', strokeWidth: 2.5, originX: 'center', originY: 'center' }),
+            new fabric.Circle({ radius: 6, fill: '#111', left: 0, top: 0, originX: 'center', originY: 'center' })
+          ], { left: -32, top: 8, originX: 'center', originY: 'center' });
+          const eye2 = new fabric.Group([
+            new fabric.Circle({ radius: 19, fill: '#fff', stroke: '#222', strokeWidth: 2.5, originX: 'center', originY: 'center' }),
+            new fabric.Circle({ radius: 8, fill: '#111', left: 2, top: -2, originX: 'center', originY: 'center' })
+          ], { left: 0, top: -6, originX: 'center', originY: 'center' });
+          const eye3 = new fabric.Group([
+            new fabric.Circle({ radius: 15, fill: '#fff', stroke: '#222', strokeWidth: 2.5, originX: 'center', originY: 'center' }),
+            new fabric.Circle({ radius: 6, fill: '#111', left: -1, top: 1, originX: 'center', originY: 'center' })
+          ], { left: 32, top: 8, originX: 'center', originY: 'center' });
+          partObj = new fabric.Group([eye1, eye2, eye3], { left: posX, top: posY, originX: 'center', originY: 'center' });
+          break;
+        }
+
+        case 'eye_pair_wonky': {
+          const lEye = new fabric.Group([
+            new fabric.Circle({ radius: 19, fill: '#fff9db', stroke: '#222', strokeWidth: 2.5, originX: 'center', originY: 'center' }),
+            new fabric.Circle({ radius: 7, fill: '#2b2d42', left: -5, top: 4, originX: 'center', originY: 'center' })
+          ], { left: -22, top: 0, originX: 'center', originY: 'center' });
+          const rEye = new fabric.Group([
+            new fabric.Circle({ radius: 19, fill: '#fff9db', stroke: '#222', strokeWidth: 2.5, originX: 'center', originY: 'center' }),
+            new fabric.Circle({ radius: 7, fill: '#2b2d42', left: 5, top: -4, originX: 'center', originY: 'center' })
+          ], { left: 22, top: 0, originX: 'center', originY: 'center' });
+          partObj = new fabric.Group([lEye, rEye], { left: posX, top: posY, originX: 'center', originY: 'center' });
+          break;
+        }
+
+        case 'eye_color_ring': {
+          const outer = new fabric.Circle({ radius: 26, fill: '#ffd166', stroke: '#222', strokeWidth: 2.5, originX: 'center', originY: 'center' });
+          const middle = new fabric.Circle({ radius: 18, fill: '#ffffff', stroke: '#222', strokeWidth: 2, originX: 'center', originY: 'center' });
+          const pupil = new fabric.Circle({ radius: 8, fill: '#0077b6', originX: 'center', originY: 'center' });
+          partObj = new fabric.Group([outer, middle, pupil], { left: posX, top: posY, originX: 'center', originY: 'center' });
+          break;
+        }
+
+        case 'eye_sleepy': {
+          const white = new fabric.Circle({ radius: 24, fill: '#fff', stroke: '#222', strokeWidth: 2.5, originX: 'center', originY: 'center' });
+          const pupil = new fabric.Circle({ radius: 9, fill: '#222', left: 0, top: 4, originX: 'center', originY: 'center' });
+          const lid = new fabric.Path('M 8 30 Q 30 38 52 30', {
+            scaleX: 1.1,
+            fill: 'none',
+            stroke: '#222',
+            strokeWidth: 3.5,
+            strokeLineCap: 'round',
+            originX: 'center',
+            originY: 'center'
+          });
+          partObj = new fabric.Group([white, pupil, lid], { left: posX, top: posY, originX: 'center', originY: 'center' });
+          break;
+        }
+
+        case 'eye_star': {
+          const white = new fabric.Circle({ radius: 25, fill: '#ffffff', stroke: '#222', strokeWidth: 2.5, originX: 'center', originY: 'center' });
+          const star = new fabric.Path('M 0 -14 L 4 -4 L 14 -2 L 7 5 L 9 14 L 0 9 L -9 14 L -7 5 L -14 -2 L -4 -4 Z', {
+            fill: '#e63946',
+            originX: 'center',
+            originY: 'center'
+          });
+          partObj = new fabric.Group([white, star], { left: posX, top: posY, originX: 'center', originY: 'center' });
+          break;
+        }
+
+        // --- MOUTHS ---
+        case 'mouth_grin_2teeth': {
+          const mouthBase = new fabric.Path('M -35 -12 Q 0 35 35 -12 Z', {
+            fill: '#222222',
+            stroke: '#222222',
+            strokeWidth: 3,
+            originX: 'center',
+            originY: 'center'
+          });
+          const toothL = new fabric.Rect({
+            width: 11,
+            height: 13,
+            rx: 2,
+            ry: 2,
+            fill: '#ffffff',
+            stroke: '#222222',
+            strokeWidth: 1.5,
+            left: -8,
+            top: -12,
+            originX: 'center',
+            originY: 'top'
+          });
+          const toothR = new fabric.Rect({
+            width: 11,
+            height: 13,
+            rx: 2,
+            ry: 2,
+            fill: '#ffffff',
+            stroke: '#222222',
+            strokeWidth: 1.5,
+            left: 8,
+            top: -12,
+            originX: 'center',
+            originY: 'top'
+          });
+          partObj = new fabric.Group([mouthBase, toothL, toothR], {
+            left: posX,
+            top: posY,
+            originX: 'center',
+            originY: 'center',
+            subTargetCheck: false
+          });
+          break;
+        }
+
+        case 'mouth_fangs': {
+          const mouthBase = new fabric.Path('M -36 -12 Q 0 36 36 -12 Z', {
+            fill: '#c1121f',
+            stroke: '#222222',
+            strokeWidth: 3,
+            originX: 'center',
+            originY: 'center'
+          });
+          const fangL = new fabric.Triangle({
+            width: 12,
+            height: 16,
+            fill: '#ffffff',
+            stroke: '#222222',
+            strokeWidth: 1.5,
+            angle: 180,
+            left: -16,
+            top: 2,
+            originX: 'center',
+            originY: 'center'
+          });
+          const fangR = new fabric.Triangle({
+            width: 12,
+            height: 16,
+            fill: '#ffffff',
+            stroke: '#222222',
+            strokeWidth: 1.5,
+            angle: 180,
+            left: 16,
+            top: 2,
+            originX: 'center',
+            originY: 'center'
+          });
+          partObj = new fabric.Group([mouthBase, fangL, fangR], {
+            left: posX,
+            top: posY,
+            originX: 'center',
+            originY: 'center',
+            subTargetCheck: false
+          });
+          break;
+        }
+
+        case 'mouth_paper_bar': {
+          const bar = new fabric.Rect({
+            width: 60,
+            height: 13,
+            rx: 6,
+            ry: 6,
+            fill: '#0077b6',
+            stroke: '#222222',
+            strokeWidth: 2,
+            originX: 'center',
+            originY: 'center'
+          });
+          const stick = new fabric.Rect({
+            width: 9,
+            height: 20,
+            rx: 2,
+            ry: 2,
+            fill: '#ffffff',
+            stroke: '#222222',
+            strokeWidth: 1.5,
+            left: 0,
+            top: 0,
+            originX: 'center',
+            originY: 'center'
+          });
+          partObj = new fabric.Group([bar, stick], {
+            left: posX,
+            top: posY,
+            originX: 'center',
+            originY: 'center',
+            subTargetCheck: false
+          });
+          break;
+        }
+
+        case 'mouth_stitched': {
+          const lineH = new fabric.Line([-28, 0, 28, 0], { stroke: '#222', strokeWidth: 4, strokeLineCap: 'round' });
+          const st1 = new fabric.Line([-16, -9, -16, 9], { stroke: '#222', strokeWidth: 3, strokeLineCap: 'round' });
+          const st2 = new fabric.Line([0, -11, 0, 11], { stroke: '#222', strokeWidth: 3, strokeLineCap: 'round' });
+          const st3 = new fabric.Line([16, -9, 16, 9], { stroke: '#222', strokeWidth: 3, strokeLineCap: 'round' });
+          partObj = new fabric.Group([lineH, st1, st2, st3], {
+            left: posX,
+            top: posY,
+            originX: 'center',
+            originY: 'center',
+            subTargetCheck: false
+          });
+          break;
+        }
+
+        case 'mouth_tongue': {
+          const mouthBase = new fabric.Path('M -35 -10 Q 0 35 35 -10 Z', {
+            fill: '#222222',
+            stroke: '#222222',
+            strokeWidth: 3,
+            originX: 'center',
+            originY: 'center'
+          });
+          const tongue = new fabric.Path('M -16 6 Q 0 36 16 6 Z', {
+            fill: '#ff4d6d',
+            stroke: '#222222',
+            strokeWidth: 2,
+            originX: 'center',
+            originY: 'center',
+            left: 0,
+            top: 14
+          });
+          const tongueLine = new fabric.Line([0, 5, 0, 18], {
+            stroke: '#c9184a',
+            strokeWidth: 2
+          });
+          partObj = new fabric.Group([mouthBase, tongue, tongueLine], {
+            left: posX,
+            top: posY,
+            originX: 'center',
+            originY: 'center',
+            subTargetCheck: false
+          });
+          break;
+        }
+
+        case 'mouth_circle_o': {
+          const outC = new fabric.Ellipse({ rx: 16, ry: 22, fill: '#2b2d42', stroke: '#222', strokeWidth: 2, originX: 'center', originY: 'center' });
+          const inC = new fabric.Ellipse({ rx: 8, ry: 12, fill: '#ff758f', originX: 'center', originY: 'center' });
+          partObj = new fabric.Group([outC, inC], {
+            left: posX,
+            top: posY,
+            originX: 'center',
+            originY: 'center',
+            subTargetCheck: false
+          });
+          break;
+        }
+
+        // --- LIMBS ---
+        case 'limb_striped_leg': {
+          const leg = new fabric.Rect({ width: 22, height: 65, fill: '#52b788', stroke: '#1b4332', strokeWidth: 2.5, originX: 'center', originY: 'center' });
+          const l1 = new fabric.Line([-11, -16, 11, -16], { stroke: '#1b4332', strokeWidth: 4 });
+          const l2 = new fabric.Line([-11, 0, 11, 0], { stroke: '#1b4332', strokeWidth: 4 });
+          const l3 = new fabric.Line([-11, 16, 11, 16], { stroke: '#1b4332', strokeWidth: 4 });
+          const foot = new fabric.Rect({ width: 30, height: 12, rx: 3, fill: '#1b4332', top: 32, originX: 'center', originY: 'center' });
+          partObj = new fabric.Group([leg, l1, l2, l3, foot], { left: posX, top: posY, originX: 'center', originY: 'center' });
+          break;
+        }
+
+        case 'limb_pattern_arm': {
+          const arm = new fabric.Path('M 12 12 Q 40 20 44 48', { scaleX: 1.6, scaleY: 1.6, fill: 'none', stroke: '#2a9d8f', strokeWidth: 14, strokeLineCap: 'round', originX: 'center', originY: 'center' });
+          const dot1 = new fabric.Circle({ radius: 3, fill: '#fff', left: -10, top: -14, originX: 'center', originY: 'center' });
+          const dot2 = new fabric.Circle({ radius: 3, fill: '#fff', left: 4, top: 0, originX: 'center', originY: 'center' });
+          const dot3 = new fabric.Circle({ radius: 3, fill: '#fff', left: 12, top: 18, originX: 'center', originY: 'center' });
+          partObj = new fabric.Group([arm, dot1, dot2, dot3], { left: posX, top: posY, originX: 'center', originY: 'center' });
+          break;
+        }
+
+        case 'limb_zigzag': {
+          partObj = new fabric.Path('M 30 6 L 44 16 L 16 26 L 44 36 L 16 46 L 30 54', {
+            scaleX: 1.6,
+            scaleY: 1.6,
+            fill: 'none',
+            stroke: '#e76f51',
+            strokeWidth: 8,
+            strokeLineCap: 'round',
+            strokeLineJoin: 'round',
+            left: posX,
+            top: posY,
+            originX: 'center',
+            originY: 'center'
+          });
+          break;
+        }
+
+        case 'limb_bat_wing': {
+          partObj = new fabric.Path('M 8 38 C 16 16 38 18 52 24 C 44 32 40 40 32 38 C 26 44 18 46 8 38 Z', {
+            scaleX: 1.8,
+            scaleY: 1.8,
+            fill: '#4a5568',
+            stroke: '#1a202c',
+            strokeWidth: 2.5,
+            left: posX,
+            top: posY,
+            originX: 'center',
+            originY: 'center'
+          });
+          break;
+        }
+
+        case 'limb_claw_hand': {
+          const arm = new fabric.Rect({ width: 16, height: 40, fill: '#f4a261', stroke: '#264653', strokeWidth: 2, originX: 'center', originY: 'center', selectable: false, evented: false });
+          const c1 = new fabric.Triangle({ width: 9, height: 18, fill: '#f4a261', stroke: '#264653', strokeWidth: 1.5, angle: 165, left: -10, top: 24, originX: 'center', originY: 'center', selectable: false, evented: false });
+          const c2 = new fabric.Triangle({ width: 9, height: 22, fill: '#f4a261', stroke: '#264653', strokeWidth: 1.5, angle: 180, left: 0, top: 26, originX: 'center', originY: 'center', selectable: false, evented: false });
+          const c3 = new fabric.Triangle({ width: 9, height: 18, fill: '#f4a261', stroke: '#264653', strokeWidth: 1.5, angle: 195, left: 10, top: 24, originX: 'center', originY: 'center', selectable: false, evented: false });
+          partObj = new fabric.Group([arm, c1, c2, c3], { left: posX, top: posY, originX: 'center', originY: 'center', subTargetCheck: false });
+          break;
+        }
+
+        case 'limb_boot': {
+          // Leg bar
+          const leg = new fabric.Rect({
+            width: 18,
+            height: 44,
+            fill: '#3a86ff',
+            stroke: '#1e293b',
+            strokeWidth: 2.5,
+            originX: 'center',
+            originY: 'center',
+            left: -4,
+            top: -10,
+            selectable: false,
+            evented: false
+          });
+          // Sock stripe accent
+          const sockStripe = new fabric.Rect({
+            width: 18,
+            height: 6,
+            fill: '#ffffff',
+            originX: 'center',
+            originY: 'center',
+            left: -4,
+            top: -22,
+            selectable: false,
+            evented: false
+          });
+          // Shoe tightly connected to the bottom of the leg
+          const boot = new fabric.Path('M -13 0 L 16 0 C 24 0 24 16 14 16 L -13 16 C -17 16 -17 0 -13 0 Z', {
+            fill: '#ff006e',
+            stroke: '#1e293b',
+            strokeWidth: 2.5,
+            originX: 'center',
+            originY: 'top',
+            left: 2,
+            top: 10,
+            selectable: false,
+            evented: false
+          });
+          partObj = new fabric.Group([leg, sockStripe, boot], {
+            left: posX,
+            top: posY,
+            originX: 'center',
+            originY: 'center',
+            subTargetCheck: false
+          });
+          break;
+        }
+
+        // --- DECOR ---
+        case 'decor_antenna_tuft': {
+          const l1 = new fabric.Line([-14, 20, -18, -20], { stroke: '#ff4d6d', strokeWidth: 6, strokeLineCap: 'round' });
+          const l2 = new fabric.Line([0, 20, 0, -25], { stroke: '#ff758f', strokeWidth: 6, strokeLineCap: 'round' });
+          const l3 = new fabric.Line([14, 20, 18, -20], { stroke: '#ff4d6d', strokeWidth: 6, strokeLineCap: 'round' });
+          partObj = new fabric.Group([l1, l2, l3], { left: posX, top: posY, originX: 'center', originY: 'center' });
+          break;
+        }
+
+        case 'decor_horns_pair': {
+          const h1 = new fabric.Path('M 14 44 Q 8 20 24 14 Q 22 28 22 44 Z', { scaleX: 1.4, scaleY: 1.4, fill: '#ffb703', stroke: '#222', strokeWidth: 2, left: -22, originX: 'center', originY: 'center' });
+          const h2 = new fabric.Path('M 46 44 Q 52 20 36 14 Q 38 28 38 44 Z', { scaleX: 1.4, scaleY: 1.4, fill: '#ffb703', stroke: '#222', strokeWidth: 2, left: 22, originX: 'center', originY: 'center' });
+          partObj = new fabric.Group([h1, h2], { left: posX, top: posY, originX: 'center', originY: 'center' });
+          break;
+        }
+
+        case 'decor_blush_pair': {
+          const b1 = new fabric.Circle({ radius: 14, fill: '#ff70a6', opacity: 0.85, left: -32, originX: 'center', originY: 'center' });
+          const b2 = new fabric.Circle({ radius: 14, fill: '#ff70a6', opacity: 0.85, left: 32, originX: 'center', originY: 'center' });
+          partObj = new fabric.Group([b1, b2], { left: posX, top: posY, originX: 'center', originY: 'center' });
+          break;
+        }
+
+        case 'decor_spots_cluster': {
+          const s1 = new fabric.Circle({ radius: 9, fill: '#e63946', left: -14, top: -12, originX: 'center', originY: 'center' });
+          const s2 = new fabric.Circle({ radius: 12, fill: '#ff4d6d', left: 12, top: -8, originX: 'center', originY: 'center' });
+          const s3 = new fabric.Circle({ radius: 11, fill: '#e63946', left: -6, top: 12, originX: 'center', originY: 'center' });
+          const s4 = new fabric.Circle({ radius: 8, fill: '#ff758f', left: 16, top: 14, originX: 'center', originY: 'center' });
+          partObj = new fabric.Group([s1, s2, s3, s4], { left: posX, top: posY, originX: 'center', originY: 'center' });
+          break;
+        }
+
+        case 'decor_alien_orb': {
+          const stem = new fabric.Line([0, 24, 0, -10], { stroke: '#222', strokeWidth: 5, strokeLineCap: 'round' });
+          const bulb = new fabric.Circle({ radius: 14, fill: '#06d6a0', stroke: '#222', strokeWidth: 2.5, left: 0, top: -20, originX: 'center', originY: 'center' });
+          partObj = new fabric.Group([stem, bulb], { left: posX, top: posY, originX: 'center', originY: 'center' });
+          break;
+        }
+
+        case 'decor_party_hat': {
+          const cone = new fabric.Triangle({ width: 38, height: 50, fill: '#8338ec', stroke: '#222', strokeWidth: 2.5, originX: 'center', originY: 'center' });
+          const pom = new fabric.Circle({ radius: 6, fill: '#ffbe0b', left: 0, top: -26, originX: 'center', originY: 'center' });
+          const stripe = new fabric.Line([-14, 4, 14, 4], { stroke: '#ffbe0b', strokeWidth: 4 });
+          partObj = new fabric.Group([cone, pom, stripe], { left: posX, top: posY, originX: 'center', originY: 'center' });
+          break;
+        }
+
+        default:
+          partObj = new fabric.Circle({ radius: 18, fill: '#f97316', left: posX, top: posY, originX: 'center', originY: 'center' });
+      }
+
+      if (partObj) {
+        canvas.add(partObj);
+        canvas.setActiveObject(partObj);
+        canvas.requestRenderAll();
+        showToast('已加入配件！可自由拖曳、旋轉及縮放', 'fa-puzzle-piece text-emerald-500');
+      }
+    }
+
+    /**
+     * Stamp Student Name Badge onto Canvas (Fixed to appear clearly at bottom/center)
+     */
+    function addTeacherStamp() {
+      if (isDrawing) toggleDrawingMode(false);
+
+      const inputVal = (document.getElementById('studentNameInput').value || '').trim();
+      const displayName = inputVal ? `創作者：${inputVal}` : '創作者：小小藝術家';
+
+      // Remove existing student badge if present to update directly
+      const existingBadge = canvas.getObjects().find(obj => obj.isStudentBadge);
+      if (existingBadge) {
+        canvas.remove(existingBadge);
+      }
+
+      const badgeWidth = Math.max(180, displayName.length * 20 + 40);
+      const badgeBg = new fabric.Rect({
+        width: badgeWidth,
+        height: 48,
+        rx: 14,
+        ry: 14,
+        fill: '#fef3c7',
+        stroke: '#d97706',
+        strokeWidth: 2.5,
+        strokeDashArray: [5, 3]
+      });
+
+      const badgeText = new fabric.Text(displayName, {
+        fontSize: 16,
+        fontFamily: 'Zen Maru Gothic',
+        fontWeight: '900',
+        fill: '#78350f',
+        left: 20,
+        top: 13
+      });
+
+      const stampGroup = new fabric.Group([badgeBg, badgeText], {
+        left: canvas.width / 2,
+        top: canvas.height - 45,
+        originX: 'center',
+        originY: 'center',
+        angle: -2,
+        shadow: new fabric.Shadow({ color: 'rgba(180, 83, 9, 0.16)', blur: 6, offsetX: 2, offsetY: 3 })
+      });
+
+      stampGroup.isStudentBadge = true;
+
+      canvas.add(stampGroup);
+      canvas.setActiveObject(stampGroup);
+      canvas.requestRenderAll();
+      showToast(`已放上名字名牌：「${displayName}」！可自由拖曳或縮放`);
+    }
+
+    /**
+     * Default welcome assemble for a quick friendly start
+     */
+    function createPresetWelcomeMonster() {
+      const body = new fabric.Ellipse({
+        rx: 90,
+        ry: 64,
+        fill: '#ffd166',
+        stroke: '#2b2d42',
+        strokeWidth: 4,
+        originX: 'center',
+        originY: 'center',
+        left: canvas.width * 0.5,
+        top: canvas.height * 0.48,
+        shadow: new fabric.Shadow({ color: 'rgba(0,0,0,0.1)', blur: 6, offsetX: 3, offsetY: 4 })
+      });
+      canvas.add(body);
+
+      // Left eye with pupil firmly combined
+      const eyeL = new fabric.Group([
+        new fabric.Circle({ radius: 20, fill: '#ffffff', stroke: '#222', strokeWidth: 3, originX: 'center', originY: 'center' }),
+        new fabric.Circle({ radius: 8, fill: '#222', left: 4, top: 2, originX: 'center', originY: 'center' })
+      ], {
+        left: canvas.width * 0.44,
+        top: canvas.height * 0.41,
+        originX: 'center',
+        originY: 'center',
+        subTargetCheck: false
+      });
+
+      // Right eye with pupil firmly combined
+      const eyeR = new fabric.Group([
+        new fabric.Circle({ radius: 24, fill: '#ffffff', stroke: '#222', strokeWidth: 3, originX: 'center', originY: 'center' }),
+        new fabric.Circle({ radius: 9, fill: '#222', left: -2, top: 1, originX: 'center', originY: 'center' })
+      ], {
+        left: canvas.width * 0.56,
+        top: canvas.height * 0.40,
+        originX: 'center',
+        originY: 'center',
+        subTargetCheck: false
+      });
+
+      // Mouth and teeth firmly combined into one whole unit
+      const mouthBase = new fabric.Path('M -30 -10 Q 0 30 30 -10 Z', {
+        fill: '#222',
+        stroke: '#222',
+        strokeWidth: 2,
+        originX: 'center',
+        originY: 'center'
+      });
+      const toothL = new fabric.Rect({
+        width: 8,
+        height: 10,
+        rx: 1,
+        ry: 1,
+        fill: '#fff',
+        stroke: '#222',
+        strokeWidth: 1,
+        left: -6,
+        top: -10,
+        originX: 'center',
+        originY: 'top'
+      });
+      const toothR = new fabric.Rect({
+        width: 8,
+        height: 10,
+        rx: 1,
+        ry: 1,
+        fill: '#fff',
+        stroke: '#222',
+        strokeWidth: 1,
+        left: 6,
+        top: -10,
+        originX: 'center',
+        originY: 'top'
+      });
+      const welcomeMouth = new fabric.Group([mouthBase, toothL, toothR], {
+        left: canvas.width * 0.5,
+        top: canvas.height * 0.52,
+        originX: 'center',
+        originY: 'center',
+        subTargetCheck: false
+      });
+
+      canvas.add(eyeL, eyeR, welcomeMouth);
+
+      canvas.discardActiveObject();
+      canvas.requestRenderAll();
+    }
+
+    function toggleDrawingMode(forceState = null) {
+      if (forceState !== null) {
+        isDrawing = forceState;
+      } else {
+        isDrawing = !isDrawing;
+      }
+
+      canvas.isDrawingMode = isDrawing;
+      const btn = document.getElementById('btnToggleDraw');
+      const text = document.getElementById('drawStatusText');
+
+      if (isDrawing) {
+        btn.classList.add('tool-active');
+        text.innerText = '完成手繪 (回選取模式)';
+        canvas.discardActiveObject();
+        canvas.requestRenderAll();
+        showToast('手繪模式已啟動！可直接在畫布簽名或彩繪');
+      } else {
+        btn.classList.remove('tool-active');
+        text.innerText = '開啟畫筆模式';
+        showToast('已切換為拼貼選取模式 (可縮放/移動/旋轉/調整圖層)');
+      }
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      initCanvas();
+
+      // Tab switching logic
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          switchTab(btn.dataset.tab);
+        });
+      });
+
+      // Part category sub-filters
+      document.querySelectorAll('.part-filter-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.part-filter-btn').forEach(b => {
+            b.className = 'part-filter-btn px-2.5 py-1 rounded-full bg-amber-100 text-amber-800 font-bold hover:bg-amber-200';
+          });
+          btn.className = 'part-filter-btn px-2.5 py-1 rounded-full bg-amber-600 text-white font-bold';
+
+          const target = btn.dataset.category;
+          document.querySelectorAll('.parts-grid').forEach(grid => grid.classList.add('hidden'));
+          const targetGrid = document.getElementById(`cat-${target}`);
+          if (targetGrid) targetGrid.classList.remove('hidden');
+        });
+      });
+
+      // Drawing controls
+      document.getElementById('btnToggleDraw').addEventListener('click', () => toggleDrawingMode());
+
+      // Eraser
+      document.getElementById('btnEraser').addEventListener('click', () => {
+        toggleDrawingMode(true);
+        canvas.freeDrawingBrush.color = '#faf7f2';
+        canvas.freeDrawingBrush.width = 24;
+        showToast('已切換為橡皮擦');
+      });
+
+      // Brush size slider
+      document.getElementById('brushSizeSlider').addEventListener('input', (e) => {
+        currentPenWidth = parseInt(e.target.value);
+        document.getElementById('brushSizeVal').innerText = `${currentPenWidth} px`;
+        if (canvas.freeDrawingBrush) {
+          canvas.freeDrawingBrush.width = currentPenWidth;
+        }
+      });
+
+      // Pen colors
+      document.querySelectorAll('.pen-color-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          currentPenColor = btn.dataset.color;
+          if (canvas.freeDrawingBrush) {
+            canvas.freeDrawingBrush.color = currentPenColor;
+          }
+          toggleDrawingMode(true);
+          showToast(`已切換手寫筆顏色`, 'fa-pen text-purple-400');
+        });
+      });
+
+      // Palette swatches for Coloring active selected items
+      document.querySelectorAll('.palette-swatch').forEach(btn => {
+        btn.addEventListener('click', () => {
+          applyColorToSelection(btn.dataset.fill);
+        });
+      });
+
+      // Custom color picker input
+      document.getElementById('customColorPicker').addEventListener('input', (e) => {
+        applyColorToSelection(e.target.value);
+      });
+
+      // Quick Stamp button & Enter key on Student Name input
+      document.getElementById('btnQuickStamp').addEventListener('click', addTeacherStamp);
+      document.getElementById('studentNameInput').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          addTeacherStamp();
+        }
+      });
+
+      // Layer controls: Bring Up One Layer (往上一層)
+      document.getElementById('btnBringUp').addEventListener('click', () => {
+        const obj = canvas.getActiveObject();
+        if (obj) {
+          canvas.bringForward(obj);
+          canvas.requestRenderAll();
+          showToast('已將物件往上一層！', 'fa-arrow-up text-amber-500');
+        } else {
+          showToast('請先點選想要往上一層的怪獸或五官喔！', 'fa-hand-pointer text-amber-400');
+        }
+      });
+
+      // Layer controls: Send Down One Layer (往下一層)
+      document.getElementById('btnSendDown').addEventListener('click', () => {
+        const obj = canvas.getActiveObject();
+        if (obj) {
+          canvas.sendBackwards(obj);
+          canvas.requestRenderAll();
+          showToast('已將物件往下一層！', 'fa-arrow-down text-slate-500');
+        } else {
+          showToast('請先點選想要往下一層的怪獸或五官喔！', 'fa-hand-pointer text-amber-400');
+        }
+      });
+
+      // Layer controls: Bring to absolute front
+      document.getElementById('btnBringFront').addEventListener('click', () => {
+        const obj = canvas.getActiveObject();
+        if (obj) {
+          canvas.bringToFront(obj);
+          canvas.requestRenderAll();
+          showToast('已將物件移至最上層');
+        }
+      });
+
+      // Layer controls: Send to absolute back
+      document.getElementById('btnSendBack').addEventListener('click', () => {
+        const obj = canvas.getActiveObject();
+        if (obj) {
+          canvas.sendToBack(obj);
+          canvas.requestRenderAll();
+          showToast('已將物件移至最下層');
+        }
+      });
+
+      // Duplicate button
+      document.getElementById('btnDuplicate').addEventListener('click', () => {
+        const active = canvas.getActiveObject();
+        if (!active) return;
+        active.clone((cloned) => {
+          cloned.set({
+            left: active.left + 24,
+            top: active.top + 24,
+            evented: true
+          });
+          canvas.add(cloned);
+          canvas.setActiveObject(cloned);
+          canvas.requestRenderAll();
+          showToast('已複製一份！');
+        });
+      });
+
+      // Delete selected
+      document.getElementById('btnDeleteSelected').addEventListener('click', () => {
+        const active = canvas.getActiveObject();
+        if (active) {
+          canvas.remove(active);
+          canvas.discardActiveObject();
+          canvas.requestRenderAll();
+          showToast('已刪除所選物件');
+        }
+      });
+
+      // Clear Canvas Modal controls - Truly Clear to empty
+      const confirmModal = document.getElementById('confirmModal');
+      document.getElementById('btnClear').addEventListener('click', () => {
+        confirmModal.classList.remove('hidden');
+      });
+      document.getElementById('btnCancelClear').addEventListener('click', () => {
+        confirmModal.classList.add('hidden');
+      });
+      document.getElementById('btnConfirmClear').addEventListener('click', () => {
+        confirmModal.classList.add('hidden');
+        // Clear all objects from canvas completely
+        canvas.clear();
+        canvas.backgroundColor = '#faf7f2';
+        canvas.discardActiveObject();
+        canvas.requestRenderAll();
+        updateCanvasStatus();
+        showToast('畫布已徹底清空，可以完全自由創作！', 'fa-trash-can text-rose-400');
+      });
+
+      // Export / Save Photo button
+      document.getElementById('btnExport').addEventListener('click', exportArtworkImage);
+
+      // Handle window resize dynamically while preserving ratio
+      window.addEventListener('resize', handleCanvasResize);
+    });
+
+    /**
+     * Switch Left Tabs
+     */
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        if (btn.dataset.tab === tabId) {
+          btn.classList.add('active-tab', 'text-amber-900', 'bg-white', 'shadow-sm');
+          btn.classList.remove('text-amber-800');
+        } else {
+          btn.classList.remove('active-tab', 'text-amber-900', 'bg-white', 'shadow-sm');
+          btn.classList.add('text-amber-800');
+        }
+      });
+
+      document.getElementById('tab-bodies').classList.toggle('hidden', tabId !== 'bodies');
+      document.getElementById('tab-parts').classList.toggle('hidden', tabId !== 'parts');
+      document.getElementById('tab-paint').classList.toggle('hidden', tabId !== 'paint');
+
+      if (tabId === 'paint') {
+        toggleDrawingMode(true);
+      } else {
+        if (isDrawing) toggleDrawingMode(false);
+      }
+    }
+
+    /**
+     * Apply fill/tint color to current selected object or its main geometry
+     */
+    function applyColorToSelection(color) {
+      const active = canvas.getActiveObject();
+      if (!active) {
+        showToast('請先在畫布上點選想變色的怪獸或五官喔！', 'fa-hand-pointer text-amber-400');
+        return;
+      }
+
+      if (active.type === 'group') {
+        const items = active.getObjects();
+        if (items.length > 0) {
+          items[0].set('fill', color);
+        }
+      } else {
+        active.set('fill', color);
+      }
+      canvas.requestRenderAll();
+      showToast('變色成功！', 'fa-palette text-amber-500');
+    }
+
+    /**
+     * Export artwork as a high quality PNG photo download
+     */
+    function exportArtworkImage() {
+      canvas.discardActiveObject();
+      canvas.requestRenderAll();
+
+      try {
+        const dataURL = canvas.toDataURL({
+          format: 'png',
+          quality: 1.0,
+          multiplier: 2
+        });
+
+        const downloadLink = document.createElement('a');
+        const timestamp = new Date().toISOString().slice(0, 10);
+        const namePart = (document.getElementById('studentNameInput').value || '').trim();
+        downloadLink.download = `奇幻怪獸作品_${namePart || '小小藝術家'}_${timestamp}.png`;
+        downloadLink.href = dataURL;
+        document.body.appendChild(downloadLink);
+        downloadLink.click();
+        document.body.removeChild(downloadLink);
+
+        showToast('🎉 作品照片下載成功！可分享給陳老師與好友', 'fa-circle-down text-emerald-400');
+      } catch (err) {
+        showToast('儲存失敗，請重試', 'fa-circle-exclamation text-rose-400');
+      }
+    }
+
+    /**
+     * Maintain canvas display scale on screen resize without distorting content
+     */
+    function handleCanvasResize() {
+      const container = document.getElementById('canvasContainer');
+      if (!container || !canvas) return;
+
+      const maxWidth = Math.min(container.clientWidth - 16, 960);
+      const maxHeight = Math.min(container.clientHeight - 16, 720);
+      const targetWidth = 840;
+      const targetHeight = 620;
+
+      const scale = Math.min(maxWidth / targetWidth, maxHeight / targetHeight, 1);
+      const newWidth = Math.floor(targetWidth * scale);
+      const newHeight = Math.floor(targetHeight * scale);
+
+      canvas.setDimensions({ width: newWidth, height: newHeight });
+      canvas.requestRenderAll();
+    }
+  </script>
+</body>
+</html>
